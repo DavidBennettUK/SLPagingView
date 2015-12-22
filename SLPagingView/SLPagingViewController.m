@@ -338,9 +338,23 @@
     self.scrollView.showsVerticalScrollIndicator              = NO;
     self.scrollView.delegate                                  = self;
     self.scrollView.bounces                                   = NO;
-    //[self.scrollView setContentInset:UIEdgeInsetsMake(0, 0, -80, 0)];
+    self.scrollView.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:self.scrollView];
     
+    if ([self useAutoLayout:self.view]){
+        [self.view addConstraints:
+         [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"H:|-0.0-[v]-0.0-|"]
+                                                 options:0
+                                                 metrics:nil
+                                                   views:@{@"v": self.scrollView}]];
+        [self.view addConstraints:
+         [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"V:|-0.0-[v]-0.0-|"]
+                                                 options:0
+                                                 metrics:nil
+                                                   views:@{@"v": self.scrollView}]];
+    }
+      
+
     // Adds all views
     [self addControllers];
     
@@ -411,8 +425,13 @@
                  [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"H:|-%f-[v]", self.view.frame.size.width * idx]
                                                          options:0
                                                          metrics:nil
-                                                           views:@{@"v" : v}]];
-                }
+                                                           views:@{@"v": v}]];
+                [self.scrollView addConstraints:
+                 [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"V:|-0.0-[v]"]
+                                                         options:0
+                                                         metrics:nil
+                                                           views:@{@"v": v}]];
+            }
             else{
                 v.frame = (CGRect){SCREEN_SIZE.width * idx, 0, SCREEN_SIZE.width, CGRectGetHeight(self.view.frame)};
             }
