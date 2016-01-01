@@ -441,7 +441,7 @@
                                                constant:0]];
                 
                 [self.scrollViewSubView addConstraints:
-                 [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"H:|-%f-[v]-%f-|", self.view.frame.size.width * idx, self.view.frame.size.width * (idx - sortedIndexes.count - 1)]
+                 [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"H:|-%f-[v]-%f-|", self.view.frame.size.width * idx, self.view.frame.size.width * (sortedIndexes.count - idx - 1)]
                                                          options:0
                                                          metrics:nil
                                                            views:@{@"v": v}]];
