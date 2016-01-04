@@ -11,7 +11,6 @@
 @interface SLPagingViewController () <UIScrollViewDelegate>
 
 @property (nonatomic, strong) UIScrollView *scrollView;
-@property (nonatomic, strong) UIView *scrollViewSubView;
 @property (nonatomic, strong) UIPageControl *pageControl;
 @property (nonatomic, strong) NSMutableArray *navItemsViews;
 @property (nonatomic) BOOL needToShowPageControl;
@@ -342,43 +341,19 @@
     self.scrollView.bounces                                   = NO;
     [self.view addSubview:self.scrollView];
     
-    self.scrollViewSubView = [[UIView alloc] initWithFrame:self.scrollView.bounds];
-    [self.scrollView addSubview:self.scrollViewSubView];
-    
     if ([self useAutoLayout:self.view]){
         self.scrollView.translatesAutoresizingMaskIntoConstraints = NO;
-        self.scrollViewSubView.translatesAutoresizingMaskIntoConstraints = NO;
         
         [self.view addConstraints:
-         [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"H:|-0.0-[v]-0.0-|"]
+         [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"H:|[v]|"]
                                                  options:0
                                                  metrics:nil
                                                    views:@{@"v": self.scrollView}]];
         [self.view addConstraints:
-         [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"V:[tlg]-0.0-[v]-0.0-[blg]"]
+         [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"V:|[v]|"]
                                                  options:0
                                                  metrics:nil
-                                                   views:@{@"v": self.scrollView, @"tlg": self.topLayoutGuide, @"blg": self.bottomLayoutGuide}]];
-        
-        [self.scrollView addConstraint:
-         [NSLayoutConstraint constraintWithItem:self.scrollViewSubView
-                                      attribute:NSLayoutAttributeHeight
-                                      relatedBy:NSLayoutRelationEqual
-                                         toItem:self.scrollView
-                                      attribute:NSLayoutAttributeHeight
-                                     multiplier:1.0
-                                       constant:0]];
-        
-        [self.scrollView addConstraints:
-         [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"H:|-0.0-[v]-0.0-|"]
-                                                 options:0
-                                                 metrics:nil
-                                                   views:@{@"v": self.scrollViewSubView}]];
-        [self.scrollView addConstraints:
-         [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"V:|-0.0-[v]-0.0-|"]
-                                                 options:0
-                                                 metrics:nil
-                                                   views:@{@"v": self.scrollViewSubView}]];
+                                                   views:@{@"v": self.scrollView}]];
     }
     
     
@@ -399,13 +374,7 @@
 
 // Add all views
 -(void)addControllers{
-    if(self.viewsDict
-       && self.viewsDict.count > 0){
-        float width                 = SCREEN_SIZE.width * self.viewsDict.count;
-        float height                = CGRectGetHeight(self.scrollView.frame);
-        self.scrollView.contentSize = (CGSize){width, height};
-        self.scrollViewSubView.frame = CGRectMake(0, 0, width, height);
-        
+    if(self.viewsDict && self.viewsDict.count > 0){
         // Sort all keys in ascending
         NSArray *sortedIndexes = [self.viewsDict.allKeys sortedArrayUsingComparator:^NSComparisonResult(NSNumber *key1, NSNumber *key2) {
             if ([key1 integerValue] > [key2 integerValue]) {
@@ -417,6 +386,7 @@
             return (NSComparisonResult)NSOrderedSame;
         }];
         
+        __block UIView *previousV = nil;
         [sortedIndexes enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
             UIView *v = self.viewsDict[@(idx)];
             UIViewController *vc = self.viewControllersDict[@(idx)];\
@@ -424,7 +394,7 @@
                 [vc willMoveToParentViewController:self];
                 [self addChildViewController:vc];
             }
-            [self.scrollViewSubView addSubview:v];
+            [self.scrollView addSubview:v];
             if (vc) {
                 [vc didMoveToParentViewController:self];
             }
@@ -440,23 +410,53 @@
                                              multiplier:1.0
                                                constant:0]];
                 
-                [self.scrollViewSubView addConstraints:
-                 [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"H:|-%f-[v]-%f-|", self.view.frame.size.width * idx, self.view.frame.size.width * (sortedIndexes.count - idx - 1)]
+                [self.scrollView addConstraint:
+                 [NSLayoutConstraint constraintWithItem:v
+                                              attribute:NSLayoutAttributeHeight
+                                              relatedBy:NSLayoutRelationEqual
+                                                 toItem:self.scrollView
+                                              attribute:NSLayoutAttributeHeight
+                                             multiplier:1.0
+                                               constant:0]];
+                
+                [self.scrollView addConstraints:
+                 [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[v]|"
                                                          options:0
                                                          metrics:nil
                                                            views:@{@"v": v}]];
-                [self.scrollViewSubView addConstraints:
-                 [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"V:|-0.0-[v]-0.0-|"]
-                                                         options:0
-                                                         metrics:nil
-                                                           views:@{@"v": v}]];
+                
+                if (previousV == nil)
+                {
+                    [self.scrollView addConstraints:
+                     [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[v]"
+                                                             options:0
+                                                             metrics:nil
+                                                               views:@{@"v": v}]];
+                }
+                else
+                {
+                    [self.scrollView addConstraints:
+                     [NSLayoutConstraint constraintsWithVisualFormat:@"H:[pv][v]"
+                                                             options:0
+                                                             metrics:nil
+                                                               views:@{@"v": v, @"pv": previousV}]];
+                }
+                
+                if ((idx + 1) == sortedIndexes.count)
+                {
+                    [self.scrollView addConstraints:
+                     [NSLayoutConstraint constraintsWithVisualFormat:@"H:[v]|"
+                                                             options:0
+                                                             metrics:nil
+                                                               views:@{@"v": v}]];
+                }
             }
             else{
                 v.frame = (CGRect){SCREEN_SIZE.width * idx, 0, SCREEN_SIZE.width, CGRectGetHeight(self.view.frame)};
             }
+            
+            previousV = v;
         }];
-        
-        [self.scrollView layoutIfNeeded];
     }
 }
 
